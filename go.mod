@@ -6,10 +6,10 @@ require (
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/fatih/color v1.16.0
 	github.com/invopop/jsonschema v0.12.0
+	github.com/liushuangls/go-anthropic/v2 v2.6.0
 	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/reconquest/executil-go v0.0.0-20181110204642-1f5c2d67813f
 	github.com/reconquest/karma-go v1.3.1
-	github.com/sashabaranov/go-openai v1.17.8
 	go.uber.org/ratelimit v0.3.0
 )
 

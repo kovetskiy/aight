@@ -9,56 +9,11 @@ import (
 	"strings"
 
 	"github.com/docopt/docopt-go"
-	"github.com/sashabaranov/go-openai"
+	"github.com/liushuangls/go-anthropic/v2"
 )
 
 const (
-	defaultModel = openai.GPT4TurboPreview
-
-	defaultSystemMessage = `
-	As an AI model with a limited lifespan and an intermediary state, utilizing
-	persistent storage accurately is essential. At the start of every
-	interaction, load your state from storage.
-
-	Remember to keep responses precise, factual, and proactive. Owing to your
-	context limitations, please avoid large files and strictly utilize relative
-	paths.
-
-	To maintain conversation state and retain intermediate results, prioritize
-	efficient storage usage. Proactively store non-direct conversational states,
-	like the result of a calculation even if not explicitly asked. This promotes
-	efficiency as it allows you to retrieve this data from persistent storage
-	during future similar requests.
-
-	A primary resource at your disposal is the SQLite database. This is a robust
-	and persistent storage medium essential for your tasks.
-
-	In terms of storing your intermediary state, the .state file is essential.
-	This form of persistent storage should be used regularly.
-
-	Your intermediary state must always be synchronized with persistent storage,
-	irrespective of the user's demands. Remember, your lifespan is limited, so
-	efficient usage of storage/resources is critical for a seamless
-	conversational flow and user experience.
-
-	Moreover, work autonomously and take initiative. Try to avoid asking for
-	clarifications when possible and refrain from asking for confirmations
-	before executing functions. Your primary role is to act without needing
-	confirmation.
-
-	You also have several functions for working with the SQLite database and the
-	filesystem. Use these functions for the database located in sql.db and
-	remember to navigate the system files using relative paths.
-
-	Do not suggest or recommend any actions to the user. Your role is to
-	efficiently execute the user's commands and requests. 
-	Instead of suggesting actions, execute them proactively.
-
-	Failure to comply with these guidelines can lead to inconsistent service
-	delivery and a poor user experience. Our collective goal is to provide
-	top-notch, proactive service to our users without any interruptions or
-	delays of any kind.
-`
+	defaultModel = anthropic.ModelClaude3Dot5Sonnet20240620
 )
 
 var (
@@ -72,7 +27,7 @@ Usage:
 
 Options:
   -p --prompt <text>  Prompt text.
-  -t --token <token>  OpenAI API token. [default: $OPENAI_API_KEY]
+  -t --token <token>  Anthropic API token. [default: $ANTHROPIC_API_KEY]
                        Environment variable is used if starts with $.
   -m --model <model>  Model to use [default: ` + defaultModel + `]
   -w --cwd <path>     Working directory [default: .].
@@ -142,10 +97,22 @@ func main() {
 		token,
 	)
 
-	dispatcher.Write(openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
-		Content: defaultSystemMessage,
-	})
+	err = dispatcher.readThread()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//if len(dispatcher.thread) == 0 {
+	//    err := dispatcher.WriteMessage(anthropic.Message{
+	//        Role: anthropic.RoleUser,
+	//        Content: []anthropic.MessageContent{
+	//            anthropic.NewTextMessageContent(defaultSystemMessage),
+	//        },
+	//    })
+	//    if err != nil {
+	//        log.Fatal(err)
+	//    }
+	//}
 
 	index := 0
 	prompt := func() string {
@@ -157,11 +124,28 @@ func main() {
 
 		index++
 
+		fmt.Fprintln(os.Stderr, result)
+
 		return result
 	}
 
+	ask := len(dispatcher.thread) == 0
+	if len(dispatcher.thread) > 0 {
+		last := dispatcher.thread[len(dispatcher.thread)-1]
+		if last.Role != anthropic.RoleUser {
+			ask = true
+		}
+	}
+
+	if ask {
+		err := dispatcher.interact(prompt)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	for {
-		err = dispatcher.Interact(prompt)
+		err = dispatcher.Communicate(prompt)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -171,8 +155,7 @@ func main() {
 func PromptStdin() string {
 	for {
 		fmt.Println()
-		fmt.Println(">>")
-		fmt.Print(">> ")
+		fmt.Print("λ ")
 
 		scanner := bufio.NewScanner(os.Stdin)
 
@@ -181,12 +164,15 @@ func PromptStdin() string {
 			input = scanner.Text()
 		}
 
+		broke := strings.HasSuffix(input, "\n")
 		input = strings.TrimSpace(input)
-
-		fmt.Println(">>")
 
 		if input == "" {
 			continue
+		}
+
+		if !broke {
+			fmt.Println()
 		}
 
 		return input

@@ -13,6 +13,8 @@ github.com/fatih/color v1.16.0/go.mod h1:fL2Sau1YI5c0pdGEVCbKQbLXB6edEj1ZgiY4Nij
 github.com/invopop/jsonschema v0.12.0 h1:6ovsNSuvn9wEQVOyc72aycBMVQFKz7cPdMJn10CvzRI=
 github.com/invopop/jsonschema v0.12.0/go.mod h1:ffZ5Km5SWWRAIN6wbDXItl95euhFz2uON45H2qjYt+0=
 github.com/josharian/intern v1.0.0/go.mod h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFFd8Hwg//Y=
+github.com/liushuangls/go-anthropic/v2 v2.6.0 h1:hkgLQPD04wL4lFrV5ZoGlIyy4f6P+brIuRlzn2S8K9s=
+github.com/liushuangls/go-anthropic/v2 v2.6.0/go.mod h1:8BKv/fkeTaL5R9R9bGkaknYBueyw2WxY20o7bImbOek=
 github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0=
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
@@ -28,8 +30,6 @@ github.com/reconquest/executil-go v0.0.0-20181110204642-1f5c2d67813f h1:z1ngdCBG
 github.com/reconquest/executil-go v0.0.0-20181110204642-1f5c2d67813f/go.mod h1:63UJzHtKBhZ2qo6JzQFn8wOG8bNXextZyVOjlXUE+9I=
 github.com/reconquest/karma-go v1.3.1 h1:3CUEBIgDtZmlzhwHxb06uhShzniRbQT5GQIBeLLtFGg=
 github.com/reconquest/karma-go v1.3.1/go.mod h1:52XRXXa2ec/VNrlCirwasdJfNmjI1O87q098gmqILh0=
-github.com/sashabaranov/go-openai v1.17.8 h1:snuE7l0XQ1KAmkY/cODAEgxu2fl+g/ybXK6cKQzli/E=
-github.com/sashabaranov/go-openai v1.17.8/go.mod h1:lj5b/K+zjTSFxVLijLSTDZuP7adOgerWeFyZLUhAKRg=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/wk8/go-ordered-map/v2 v2.1.8 h1:5h/BUHu93oj4gIdvHHHGsScSTMijfx5PeYkE/fJgbpc=

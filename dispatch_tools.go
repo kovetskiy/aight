@@ -2,20 +2,14 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -74,26 +68,15 @@ func (dispatcher *Dispatcher) RegisterTools() {
 
 	register(
 		dispatcher,
-		"python_execute", "Execute python code. This is especially useful for math.",
-		guardError(dispatcher.python),
+		"fs_patch",
+		"Apply a patch to a file",
+		guardError(dispatcher.patchFile),
 	)
 
 	//register(
 	//    dispatcher,
-	//    "http_request", "Make HTTP request and return response",
-	//    guardError(dispatcher.httpRequest),
-	//)
-
-	//register(
-	//    dispatcher,
-	//    "ai_summarize", "Summarize text using AI",
-	//    guardError(dispatcher.aiSummarize),
-	//)
-
-	//register(
-	//    dispatcher,
-	//    "ollama_run", "Run ollama ML model. This is especially useful for code generation.",
-	//    guardError(dispatcher.ollamaRun),
+	//    "python_execute", "Execute python code. This is especially useful for math.",
+	//    guardError(dispatcher.python),
 	//)
 }
 
@@ -410,44 +393,12 @@ func (dispatcher *Dispatcher) python(args PythonArguments) (any, error) {
 	}, nil
 }
 
-type OllamaRunArguments struct {
-	Prompt string `json:"prompt"`
-}
-
-func (dispatcher *Dispatcher) ollamaRun(args OllamaRunArguments) (any, error) {
-	model := "codellama"
-
-	cmd := exec.Command("ollama", "run", model, args.Prompt)
-
-	stdout, _, err := executil.Run(cmd)
-	if err != nil {
-		return nil, karma.Format(err, "run ollama")
-	}
-
-	return string(stdout), nil
-}
-
-type ASArguments struct {
-	Text string `json:"text"`
-}
-
-func (dispatcher *Dispatcher) aiSummarize(args ASArguments) (any, error) {
-	return dispatcher.ai("Summarize the following text: " + args.Text)
-}
-
-func (dispatcher *Dispatcher) ai(prompt string) (any, error) {
-	return nil, nil
-	//request := openai.ChatCompletionRequest{
-	//    Model: openai.GPT432K0613,
-	//}
-
-}
-
 // guardError returns error as first argument if it is not nil
 func guardError[T any](fn func(T) (any, error)) func(T) (any, error) {
 	return func(x T) (any, error) {
 		v, err := fn(x)
 		if err != nil {
+			log.Println(err)
 			return karma.Flatten(err), nil
 		}
 
@@ -455,73 +406,43 @@ func guardError[T any](fn func(T) (any, error)) func(T) (any, error) {
 	}
 }
 
-type HTTPRequestArguments struct {
-	Endpoint string            `json:"endpoint"`
-	Query    map[string]string `json:"query,omitempty"`
-	Method   string            `json:"method,omitempty"`
-	Body     string            `json:"body,omitempty"`
+type PatchFileArguments struct {
+	Patch string `json:"patch"`
 }
 
-func (arguments HTTPRequestArguments) String() string {
-	return fmt.Sprintf(
-		"endpoint=%v query=%v method=%v body=%v",
-		arguments.Endpoint,
-		arguments.Query,
-		arguments.Method,
-		arguments.Body,
-	)
-}
+func (dispatcher *Dispatcher) patchFile(args PatchFileArguments) (any, error) {
+	cmd := exec.Command("patch", "-p1", "-u")
 
-func (dispatcher *Dispatcher) httpRequest(args HTTPRequestArguments) (any, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	cmd.Dir = dispatcher.cwd
 
-	endpoint := args.Endpoint
-	if len(args.Query) > 0 {
-		query := url.Values{}
-		for key, value := range args.Query {
-			query.Add(key, value)
-		}
-
-		if strings.Contains(endpoint, "?") {
-			endpoint += "&" + query.Encode()
-		} else {
-			endpoint += "?" + query.Encode()
-		}
-	}
-
-	var payload io.Reader
-	var headers http.Header
-	if args.Body != "" {
-		payload = bytes.NewBufferString(args.Body)
-
-		headers = http.Header{}
-		headers.Set("Content-Type", "application/json")
-	}
-
-	request, err := http.NewRequestWithContext(ctx, args.Method, endpoint, payload)
+	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, karma.Format(err, "create request")
+		return nil, err
 	}
 
-	request.Header = headers
+	buffer := bytes.NewBuffer(nil)
+	cmd.Stdout = buffer
+	cmd.Stderr = buffer
 
-	response, err := http.DefaultClient.Do(request)
+	err = cmd.Start()
 	if err != nil {
-		return nil, karma.Format(err, "send request")
+		return nil, karma.Format(err, "start patch")
 	}
 
-	defer response.Body.Close()
-
-	body, err := ioutil.ReadAll(response.Body)
+	_, err = io.WriteString(stdin, args.Patch+"\n")
 	if err != nil {
-		log.Printf("can't read response body: %s", err)
+		return nil, karma.Format(err, "write patch")
 	}
 
-	result := map[string]any{
-		"status": response.StatusCode,
-		"body":   string(body),
+	err = stdin.Close()
+	if err != nil {
+		return nil, karma.Format(err, "close patch")
 	}
 
-	return result, nil
+	err = cmd.Wait()
+	if err != nil {
+		return nil, karma.Format(err, "run patch")
+	}
+
+	return buffer.String(), nil
 }
